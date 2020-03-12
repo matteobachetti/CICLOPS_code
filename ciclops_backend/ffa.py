@@ -185,21 +185,15 @@ def sum_rolled(arr1, arr2, out, shift):
 def ffa_step(array, step, ntables):
     array_reshaped_dum = np.copy(array)
     jump = 2 ** step
-    # dum = np.zeros_like(array_reshaped_dum[0, :])
 
     for prof_n in range(ntables):
         start = start_value(prof_n, step)
         sh = shift(prof_n, step)
         jumpstart = start + jump
         if sh > 0:
-            # FOR SOME REASON THIS DOESN'T WORK. DAMN
-            # array_reshaped_dum[prof_n, :] = \
-            #     sum_rolled(array[start, :], array[jumpstart, :], dum, sh)
-
             rolled = roll(array[start + jump, :], -sh)
             array_reshaped_dum[prof_n, :] = \
                 sum_arrays(array[start, :], rolled[:])
-
         else:
             array_reshaped_dum[prof_n, :] = \
                 sum_arrays(array[start, :], array[jumpstart, :])
@@ -208,7 +202,7 @@ def ffa_step(array, step, ntables):
 
 
 @jit(nopython=True)
-def _ffa(array, bin_period, array_reshaped, ntables, z_n_n=2):
+def _ffa(array_reshaped, bin_period, ntables, z_n_n=2):
     """Fast folding algorithm search
     """
 
@@ -229,13 +223,10 @@ def _ffa(array, bin_period, array_reshaped, ntables, z_n_n=2):
 
     stats = np.zeros(ntables)
     for i in range(array_reshaped.shape[0]):
-        # stats[i] = stat(array_reshaped[i, :])
         stats[i] = \
             z_n_fast_cached(array_reshaped[i, :], cached_cos, cached_sin,
                             n=z_n_n)
-    # Here I'm subtracting the degrees of freedom from stats to flatten the
-    # periodogram
-    return periods, stats# - bin_period + 1
+    return periods, stats
 
 
 def ffa(array, bin_period, z_n_n=2):
@@ -250,7 +241,7 @@ def ffa(array, bin_period, z_n_n=2):
 
     array_reshaped = new_arr.reshape([ntables, bin_period])
 
-    return _ffa(array, bin_period, array_reshaped, ntables, z_n_n=z_n_n)
+    return _ffa(array_reshaped, bin_period, ntables, z_n_n=z_n_n)
 
 
 def _quick_rebin(counts, current_rebin):
