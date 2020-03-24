@@ -96,6 +96,71 @@ def z_n_fast_cached(norm, cached_sin, cached_cos, n=2):
     return 2 / total_norm * result
 
 
+def z_n_fast_cached_all(norm, cached_sin, cached_cos, nmax=20):
+    '''Z^2_n statistics, a` la Buccheri+03, A&A, 128, 245, eq. 2.
+
+    Here in a fast implementation based on numba.
+    Assumes that nbin != 0 and norm is an array.
+
+    Parameters
+    ----------
+    norm : array of floats
+        The pulse profile
+    n : int, default 2
+        The ``n`` in $Z^2_n$.
+
+    Returns
+    -------
+    z2_ns : dict
+        Dict containing the Z^2_n statistics of the events for each n in
+        (1..nmax)
+
+    Examples
+    --------
+    >>> phase = 2 * np.pi * np.arange(0, 1, 0.01)
+    >>> norm = np.sin(phase) + 1
+    >>> cached_sin = np.sin(np.concatenate((phase, phase, phase, phase)))
+    >>> cached_cos = np.cos(np.concatenate((phase, phase, phase, phase)))
+    >>> allzs = z_n_fast_cached_all(norm, cached_sin, cached_cos, nmax=4)
+    >>> np.isclose(allzs['2'], 50)
+    True
+    >>> np.isclose(allzs['4'], 50)
+    True
+    '''
+
+    total_norm = np.sum(norm)
+    all_zs = np.zeros(nmax)
+
+    N = norm.size
+
+    ks = np.arange(1, nmax + 1, dtype=int)
+
+    for k in ks:
+        all_zs[k - 1]= np.sum(cached_cos[:N*k:k] * norm) ** 2 + \
+            np.sum(cached_sin[:N*k:k] * norm) ** 2
+
+    result = 2 / total_norm * np.cumsum(all_zs)
+
+    return dict([(str(key), res) for key, res in zip(ks, result)])
+
+
+def h_test(norm, cached_sin, cached_cos, nmax=20):
+    '''H statistics, a` la de Jager+89, A&A, 221, 180, eq. 11.
+
+    Examples
+    --------
+    >>> phase = 2 * np.pi * np.arange(0, 1, 0.01)
+    >>> norm = np.sin(phase) + 1
+    >>> cached_sin = np.sin(np.concatenate((phase, phase, phase, phase)))
+    >>> cached_cos = np.cos(np.concatenate((phase, phase, phase, phase)))
+    >>> h = h_test(norm, cached_sin, cached_cos, nmax=4)
+    >>> np.isclose(h, 50)
+    True
+    '''
+    results = z_n_fast_cached_all(norm, cached_sin, cached_cos, nmax=nmax)
+    return np.max([z - 4 * int(m) + 4 for m, z in results.items()])
+
+
 @jit(nopython=True)
 def roll(a, shift):
     n = a.size
