@@ -22,7 +22,8 @@ Let's call step_pow the quantity (2**(step+1)) So, in each sum:
 
 + The _jump_ between the summed profiles is equal to step_pow / 2
 + The _shift_ in each element is equal to (prof_n % step_pow(step) + 1) // 2
-+ The starting number is obtained as prof_n // step_pow * step_pow + (prof_n - prof_n // step_pow) // 2
++ The starting number is obtained as
+    prof_n // step_pow * step_pow + (prof_n - prof_n // step_pow) // 2
 """
 
 import numba
